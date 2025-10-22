@@ -1,0 +1,3 @@
+git clone ...
+docker-compose up -d
+cd backend && npm install && npm run dev
