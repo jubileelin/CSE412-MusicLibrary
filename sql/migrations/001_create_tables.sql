@@ -1,145 +1,119 @@
 -- 001_create_tables.sql
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS pg_trgm; -- for text similarity / trigram indexes (optional)
-CREATE EXTENSION IF NOT EXISTS citext;  -- case-insensitive text (optional)
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS citext;
 
--- USERS
-CREATE TABLE Users (
-  userId UUID PRIMARY KEY DEFAULT uuid_generate_v4(), --autogenerate a random id
-  userName VARCHAR(255) NOT NULL UNIQUE,
+-- user
+CREATE TABLE account (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_name VARCHAR(255) NOT NULL UNIQUE,
   email CITEXT NOT NULL UNIQUE,
-  subscriptionType VARCHAR(255),
-  dateJoined DATE DEFAULT now(),
+  subscription_type VARCHAR(255),
+  date_joined DATE DEFAULT now()
 );
 
--- EXTERNAL DATA SOURCES (Spotify, Apple, etc.)
-CREATE TABLE data_sources (
+-- data_source (Spotify, Apple, etc.)
+CREATE TABLE data_source (
   id SERIAL PRIMARY KEY,
-  userName VARCHAR(100) NOT NULL UNIQUE,
+  user_name VARCHAR(100) NOT NULL UNIQUE,
   api_base_url TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- ARTISTS
-CREATE TABLE Artists (
-  artistId UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  artistName VARCHAR(255) NOT NULL,
+-- artist
+CREATE TABLE artist (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  artist_name VARCHAR(255) NOT NULL,
   genre VARCHAR(255),
-  artistLanguage VARCHAR(255),
+  artist_language VARCHAR(255),
   bio TEXT,
-  startDate DATE DEFAULT now()
+  start_date DATE DEFAULT now()
 );
 
--- PLAYLISTS
-CREATE TABLE Playlists (
-  playlistId UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  userId UUID REFERENCES Users(userId) ON DELETE CASCADE,
-  playlistName VARCHAR(255) NOT NULL,
+-- playlist
+CREATE TABLE playlist (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES account(id) ON DELETE CASCADE,
+  playlist_name VARCHAR(255) NOT NULL,
   duration TIME,
-  isExplicit BOOLEAN,
-  createdDate DATE DEFAULT now()
+  is_explicit BOOLEAN,
+  created_date DATE DEFAULT now()
 );
 
---???
--- Artist external IDs to map to Spotify/Apple objects
-CREATE TABLE artist_external_ids (
-  artistId UUID REFERENCES artists(id) ON DELETE CASCADE,
-  source_id INTEGER REFERENCES data_sources(id) ON DELETE SET NULL,
+-- artist_external_id
+CREATE TABLE artist_external_id (
+  artist_id UUID REFERENCES artist(id) ON DELETE CASCADE,
+  source_id INTEGER REFERENCES data_source(id) ON DELETE SET NULL,
   external_artist_id VARCHAR(255) NOT NULL,
   PRIMARY KEY (artist_id, source_id)
 );
 
--- ALBUMS
-CREATE TABLE Albums (
-  albumId UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  artistId UUID REFERENCES Artists(artistId) ON DELETE SET NULL,
-  albumName VARCHAR(255) NOT NULL,
+-- album
+CREATE TABLE album (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  artist_id UUID REFERENCES artist(id) ON DELETE SET NULL,
+  album_name VARCHAR(255) NOT NULL,
   duration TIME,
   genre VARCHAR(255),
-  releaseDate DATE,
-  externalId VARCHAR(255),
+  release_date DATE,
+  external_id VARCHAR(255)
 );
 
--- SONGS
-CREATE TABLE Songs (
-  songId UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  artistId UUID REFERENCES Artists(artistId) ON DELETE SET NULL,
-  albumId UUID REFERENCES Albums(albumId) ON DELETE SET NULL,
-  trackNumber INTEGER,
-  songTitle VARCHAR(400) NOT NULL,
+-- song
+CREATE TABLE song (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  artist_id UUID REFERENCES artist(id) ON DELETE SET NULL,
+  album_id UUID REFERENCES album(id) ON DELETE SET NULL,
+  track_number INTEGER,
+  song_title VARCHAR(400) NOT NULL,
   duration INTEGER,
-  isExplicit BOOLEAN,
-  releaseDate DATE,
+  is_explicit BOOLEAN,
+  release_date DATE
 );
 
--- Map track to multiple external sources (Spotify track id, Apple id, etc.)
-CREATE TABLE song_external_ids (
-  track_id UUID REFERENCES tracks(id) ON DELETE CASCADE,
-  source_id INTEGER REFERENCES data_sources(id) ON DELETE SET NULL,
+-- song_external_id
+CREATE TABLE song_external_id (
+  song_id UUID REFERENCES song(id) ON DELETE CASCADE,
+  source_id INTEGER REFERENCES data_source(id) ON DELETE SET NULL,
   external_track_id VARCHAR(255) NOT NULL,
-  PRIMARY KEY (track_id, source_id)
+  PRIMARY KEY (song_id, source_id)
 );
 
--- GENRES and many-to-many track_genres
-CREATE TABLE genres (
-  genreId SERIAL PRIMARY KEY,
-  genreName VARCHAR(100) UNIQUE NOT NULL
+-- genre
+CREATE TABLE genre (
+  id SERIAL PRIMARY KEY,
+  genre_name VARCHAR(100) UNIQUE NOT NULL
 );
 
-CREATE TABLE track_genres (
-  songId UUID REFERENCES tracks(id) ON DELETE CASCADE,
-  genreId INTEGER REFERENCES genres(genreId) ON DELETE CASCADE,
-  PRIMARY KEY (songIid, genreId)
+CREATE TABLE song_genre (
+  song_id UUID REFERENCES song(id) ON DELETE CASCADE,
+  genre_id INTEGER REFERENCES genre(id) ON DELETE CASCADE,
+  PRIMARY KEY (song_id, genre_id)
 );
 
--- USER follows ARTIST
-CREATE TABLE Follows (
-  userId UUID REFERENCES users(id) ON DELETE CASCADE,
-  artistId UUID REFERENCES artists(id) ON DELETE CASCADE,
-  followDate DATE,
-  isFavorite BOOLEAN,
+-- follow (user follows artist)
+CREATE TABLE follow (
+  user_id UUID REFERENCES account(id) ON DELETE CASCADE,
+  artist_id UUID REFERENCES artist(id) ON DELETE CASCADE,
+  follow_date DATE,
+  is_favorite BOOLEAN,
   comment TEXT,
-  PRIMARY KEY (userId, artistId)
+  PRIMARY KEY (user_id, artist_id)
 );
 
-CREATE TABLE PlaylistSongs (
-  playlistId UUID REFERENCES Playlists(playlistId) ON DELETE CASCADE,
-  songId UUID REFERENCES Songs(songId) ON DELETE SET NULL,
-  dateAdded DATE,
-  PRIMARY KEY (playlistId, songId),
-  pos INTEGER NOT NULL
+-- playlist_song
+CREATE TABLE playlist_song (
+  playlist_id UUID REFERENCES playlist(id) ON DELETE CASCADE,
+  song_id UUID REFERENCES song(id) ON DELETE SET NULL,
+  date_added DATE,
+  pos INTEGER NOT NULL,
+  PRIMARY KEY (playlist_id, song_id)
 );
 
--- Indexes for search & joins
-CREATE INDEX idx_artists_name_trgm ON artists USING gin (name gin_trgm_ops);
-CREATE INDEX idx_tracks_title_trgm ON tracks USING gin (title gin_trgm_ops);
+-- indexes
+CREATE INDEX idx_artist_artist_name_trgm ON artist USING gin (artist_name gin_trgm_ops);
+CREATE INDEX idx_song_song_title_trgm ON song USING gin (song_title gin_trgm_ops);
 
-CREATE INDEX idx_tracks_release_date ON tracks(release_date);
-CREATE INDEX idx_tracks_popularity ON tracks(popularity);
-CREATE INDEX idx_albums_release_date ON albums(release_date);
-CREATE INDEX idx_genres_name ON genres(name);
-
--- Optional: materialized view or full-text search vector for combined searching
--- (example: tracks + artist name + album)
-CREATE MATERIALIZED VIEW search_tracks AS
-SELECT
-  t.id AS track_id,
-  t.title || ' ' || coalesce(a.name,'') || ' ' || coalesce(al.title,'') AS text_for_search,
-  t.release_date,
-  t.popularity
-FROM tracks t
-LEFT JOIN artists a ON a.id = alartist.id
-LEFT JOIN albums al ON al.id = t.album_id
--- Note: above join to artists by album artist is illustrative; you'll likely link track->album->artist
-WITH NO DATA;
-
--- Trigger updated_at on update for users and comments
-CREATE OR REPLACE FUNCTION set_updated_at() RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-CREATE TRIGGER trg_comments_updated_at BEFORE UPDATE ON comments FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE INDEX idx_song_release_date ON song(release_date);
+CREATE INDEX idx_album_release_date ON album(release_date);
+CREATE INDEX idx_genre_genre_name ON genre(genre_name);
