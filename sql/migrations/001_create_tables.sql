@@ -4,67 +4,76 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm; -- for text similarity / trigram indexes
 CREATE EXTENSION IF NOT EXISTS citext;  -- case-insensitive text (optional)
 
 -- USERS
-CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  username VARCHAR(80) NOT NULL UNIQUE,
+CREATE TABLE Users (
+  userId UUID PRIMARY KEY DEFAULT uuid_generate_v4(), --autogenerate a random id
+  userName VARCHAR(255) NOT NULL UNIQUE,
   email CITEXT NOT NULL UNIQUE,
-  display_name VARCHAR(255),
-  bio TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  subscriptionType VARCHAR(255),
+  dateJoined DATE DEFAULT now(),
 );
 
 -- EXTERNAL DATA SOURCES (Spotify, Apple, etc.)
 CREATE TABLE data_sources (
   id SERIAL PRIMARY KEY,
-  name VARCHAR(100) NOT NULL UNIQUE,
+  userName VARCHAR(100) NOT NULL UNIQUE,
   api_base_url TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- ARTISTS (core entity)
-CREATE TABLE artists (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name VARCHAR(255) NOT NULL,
+-- ARTISTS
+CREATE TABLE Artists (
+  artistId UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  artistName VARCHAR(255) NOT NULL,
+  genre VARCHAR(255),
+  artistLanguage VARCHAR(255),
   bio TEXT,
-  popularity INTEGER, -- normalized popularity score if available
-  created_at TIMESTAMPTZ DEFAULT now()
+  startDate DATE DEFAULT now()
 );
 
+-- PLAYLISTS
+CREATE TABLE Playlists (
+  playlistId UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  userId UUID REFERENCES Users(userId) ON DELETE CASCADE,
+  playlistName VARCHAR(255) NOT NULL,
+  duration TIME,
+  isExplicit BOOLEAN,
+  createdDate DATE DEFAULT now()
+);
+
+--???
 -- Artist external IDs to map to Spotify/Apple objects
 CREATE TABLE artist_external_ids (
-  artist_id UUID REFERENCES artists(id) ON DELETE CASCADE,
+  artistId UUID REFERENCES artists(id) ON DELETE CASCADE,
   source_id INTEGER REFERENCES data_sources(id) ON DELETE SET NULL,
   external_artist_id VARCHAR(255) NOT NULL,
   PRIMARY KEY (artist_id, source_id)
 );
 
 -- ALBUMS
-CREATE TABLE albums (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  title VARCHAR(255) NOT NULL,
-  artist_id UUID REFERENCES artists(id) ON DELETE SET NULL,
-  release_date DATE,
-  label VARCHAR(255),
-  external_id VARCHAR(255),
-  created_at TIMESTAMPTZ DEFAULT now()
+CREATE TABLE Albums (
+  albumId UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  artistId UUID REFERENCES Artists(artistId) ON DELETE SET NULL,
+  albumName VARCHAR(255) NOT NULL,
+  duration TIME,
+  genre VARCHAR(255),
+  releaseDate DATE,
+  externalId VARCHAR(255),
 );
 
--- TRACKS (songs)
-CREATE TABLE tracks (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  title VARCHAR(400) NOT NULL,
-  album_id UUID REFERENCES albums(id) ON DELETE SET NULL,
-  duration_seconds INTEGER,
-  track_number INTEGER,
-  disc_number INTEGER,
-  release_date DATE,
-  popularity INTEGER,
-  created_at TIMESTAMPTZ DEFAULT now()
+-- SONGS
+CREATE TABLE Songs (
+  songId UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  artistId UUID REFERENCES Artists(artistId) ON DELETE SET NULL,
+  albumId UUID REFERENCES Albums(albumId) ON DELETE SET NULL,
+  trackNumber INTEGER,
+  songTitle VARCHAR(400) NOT NULL,
+  duration INTEGER,
+  isExplicit BOOLEAN,
+  releaseDate DATE,
 );
 
 -- Map track to multiple external sources (Spotify track id, Apple id, etc.)
-CREATE TABLE track_external_ids (
+CREATE TABLE song_external_ids (
   track_id UUID REFERENCES tracks(id) ON DELETE CASCADE,
   source_id INTEGER REFERENCES data_sources(id) ON DELETE SET NULL,
   external_track_id VARCHAR(255) NOT NULL,
@@ -73,65 +82,31 @@ CREATE TABLE track_external_ids (
 
 -- GENRES and many-to-many track_genres
 CREATE TABLE genres (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(100) UNIQUE NOT NULL
+  genreId SERIAL PRIMARY KEY,
+  genreName VARCHAR(100) UNIQUE NOT NULL
 );
 
 CREATE TABLE track_genres (
-  track_id UUID REFERENCES tracks(id) ON DELETE CASCADE,
-  genre_id INTEGER REFERENCES genres(id) ON DELETE CASCADE,
-  PRIMARY KEY (track_id, genre_id)
+  songId UUID REFERENCES tracks(id) ON DELETE CASCADE,
+  genreId INTEGER REFERENCES genres(genreId) ON DELETE CASCADE,
+  PRIMARY KEY (songIid, genreId)
 );
 
--- USER follows ARTIST (social)
-CREATE TABLE follows (
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  artist_id UUID REFERENCES artists(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  PRIMARY KEY (user_id, artist_id)
+-- USER follows ARTIST
+CREATE TABLE Follows (
+  userId UUID REFERENCES users(id) ON DELETE CASCADE,
+  artistId UUID REFERENCES artists(id) ON DELETE CASCADE,
+  followDate DATE,
+  isFavorite BOOLEAN,
+  comment TEXT,
+  PRIMARY KEY (userId, artistId)
 );
 
--- USER favorites (favorite artist)
-CREATE TABLE favorites (
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  artist_id UUID REFERENCES artists(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  PRIMARY KEY (user_id, artist_id)
-);
-
--- COMMENTS about artists (social)
-CREATE TABLE comments (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-  artist_id UUID REFERENCES artists(id) ON DELETE CASCADE,
-  body TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- Simple audit table for ingestion/sync jobs (optional)
-CREATE TABLE ingestions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  source_id INTEGER REFERENCES data_sources(id) ON DELETE SET NULL,
-  external_id VARCHAR(255),
-  object_type VARCHAR(50), -- 'artist'|'track'|'album'
-  ingested_at TIMESTAMPTZ DEFAULT now(),
-  metadata JSONB
-);
-
--- Playlist (optional)
-CREATE TABLE playlists (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  title VARCHAR(255) NOT NULL,
-  description TEXT,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE TABLE playlist_items (
-  id BIGSERIAL PRIMARY KEY,
-  playlist_id UUID REFERENCES playlists(id) ON DELETE CASCADE,
-  track_id UUID REFERENCES tracks(id) ON DELETE SET NULL,
+CREATE TABLE PlaylistSongs (
+  playlistId UUID REFERENCES Playlists(playlistId) ON DELETE CASCADE,
+  songId UUID REFERENCES Songs(songId) ON DELETE SET NULL,
+  dateAdded DATE,
+  PRIMARY KEY (playlistId, songId),
   pos INTEGER NOT NULL
 );
 
