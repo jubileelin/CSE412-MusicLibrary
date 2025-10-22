@@ -4,16 +4,28 @@ git clone ...
 make sure docker is open and running
 cd ~/CSE412-MusicLibrary
 docker-compose up -d
-cd backend && npm install && npm run dev
+cd backend
+npm install
 
-to start and run database:
-docker exec -it music_pg psql -U pguser -d music_db
+
+populate database:
+
 psql -h localhost -U pguser -d music_db -f sql/migrations/001_create_tables.sql
+
 password is pgpass
 
 psql -h localhost -U pguser -d music_db -f sql/seeds/seed_sample_data.sql
+
 psql -h localhost -U pguser -d music_db -f sql/migrations/002_add_indexes.sql
+
+
+
+to start and run database:
+
+docker exec -it music_pg psql -U pguser -d music_db
+
 \di  -- list all indexes in psql
+
 music-library/
 ├─ README.md
 ├─ .gitignore
