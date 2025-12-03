@@ -1,21 +1,37 @@
 import React from 'react';
 
-//need to get user information from database
+const formatDate = (value) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+};
 
-// Profile card placeholder for displaying user information.
-const ProfileCard = () => (
-  <div className="profile-card">
-    <h2>Name</h2>
-    <p>Email: email@example.com</p>
-    <p>Bio: This is a bio</p>
-    <p>Location: New York, NY</p>
-    <p>Website: www.example.com</p>
-    <p>Social Media: www.example.com</p>
-    <p>Followers: 100</p>
-    <p>Following: 100</p>
-    <p>Posts: 100</p>
-    <p>Likes: 100</p>
-  </div>
-);
+const ProfileCard = ({ profile }) => {
+  if (!profile) {
+    return <div className="profile-card">Loading profile...</div>;
+  }
+
+  const {
+    user_name,
+    email,
+    subscription_type,
+    date_joined,
+    playlist_count,
+    followed_artist_count
+  } = profile;
+
+  return (
+    <div className="profile-card">
+      <h2>{user_name}</h2>
+      <p>Email: {email}</p>
+      <p>Subscription: {subscription_type || 'Standard'}</p>
+      <p>Member since: {formatDate(date_joined)}</p>
+      <div className="profile-card__stats">
+        <span>Playlists: {playlist_count ?? 0}</span>
+        <span>Followed artists: {followed_artist_count ?? 0}</span>
+      </div>
+    </div>
+  );
+};
 
 export default ProfileCard;

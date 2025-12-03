@@ -4,6 +4,7 @@ import NavigationSidebar from './components/NavigationSidebar';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
 import DiscoverPage from './pages/DiscoverPage';
+import { CurrentAccountProvider, useCurrentAccount } from './contexts/CurrentAccountContext';
 
 const NavigationHeader = () => {
   const location = useLocation();
@@ -16,6 +17,9 @@ const NavigationHeader = () => {
 
   const activeLabel = breadcrumbLabels[location.pathname] ?? 'Home';
 
+  const { currentAccount } = useCurrentAccount();
+  const profileName = currentAccount?.user_name ?? 'User';
+
   return (
     <div className="navigation-header">
       <div className="breadcrumb-group">
@@ -25,7 +29,7 @@ const NavigationHeader = () => {
       </div>
       <NavLink to="/profile" className="profile-link">
         <img src="/SVG/profile.svg" alt="Profile icon" />
-        <span>Welcome, User</span>
+        <span>Welcome, {profileName}</span>
       </NavLink>
     </div>
   );
@@ -33,20 +37,22 @@ const NavigationHeader = () => {
 
 const App = () => {
   return (
-    <BrowserRouter>
-      <div className="app-layout">
-        <NavigationSidebar />
-        <main className="page-content">
-          <NavigationHeader />
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/home" element={<HomePage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/discover" element={<DiscoverPage />} />
-          </Routes>
-        </main>
-      </div>
-    </BrowserRouter>
+    <CurrentAccountProvider>
+      <BrowserRouter>
+        <div className="app-layout">
+          <NavigationSidebar />
+          <main className="page-content">
+            <NavigationHeader />
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/home" element={<HomePage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/discover" element={<DiscoverPage />} />
+            </Routes>
+          </main>
+        </div>
+      </BrowserRouter>
+    </CurrentAccountProvider>
   );
 };
 

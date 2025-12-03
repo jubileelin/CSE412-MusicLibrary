@@ -2,8 +2,9 @@
   "name": "backend",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "dev": "nodemon src/server.js",
+    "dev": "nodemon --watch src --exec \"node src/server.js\"",
     "start": "node src/server.js",
     "test": "jest",
     "migrate": "bash ../scripts/run_migrate.sh",

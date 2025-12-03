@@ -10,13 +10,13 @@ npm install
 
 populate database:
 
-psql -h localhost -U pguser -d music_db -f sql/migrations/001_create_tables.sql
+psql -h localhost -U pguser -d music_db -f backend/sql/migrations/001_create_tables.sql
 
 password is pgpass
 
-psql -h localhost -U pguser -d music_db -f sql/seeds/seed_sample_data.sql
+psql -h localhost -U pguser -d music_db -f backend/sql/seeds/seed_sample_data.sql
 
-psql -h localhost -U pguser -d music_db -f sql/migrations/002_add_indexes.sql
+psql -h localhost -U pguser -d music_db -f backend/sql/migrations/002_add_indexes.sql
 
 
 
@@ -48,6 +48,11 @@ SELECT id FROM artist WHERE artist_name = 'Eminem';
 
 SELECT artist_name from artist WHERE genre = 'Pop';
 
+
+FRONTEND:
+cd frontend
+npm install        # installs Vite + React dependencies
+npm run dev        # starts Vite's dev server at http://localhost:5173 (default)
 
 music-library/
 ├─ README.md
@@ -90,8 +95,10 @@ music-library/
 │     └─ integration.test.js
 ├─ frontend/
 │  ├─ package.json
+│  ├─ package-lock.json
+│  ├─ index.html
 │  └─ src/
-│     ├─ index.js
+│     ├─ main.jsx
 │     ├─ App.js
 │     ├─ styles/
 │     │  └─ global.css
@@ -135,50 +142,52 @@ music-library/
 
 ## Frontend scaffold
 
-The `frontend` folder currently hosts a minimal Node-based view layer. Pages map to the navigation items you described, with carousels and cards grouped by feature so you can hook in the database later.
+The frontend now runs on Vite + React so there is a proper dev server. `index.html` is the Vite entry point, `src/main.jsx` mounts `App`, and the styles live in `src/styles/global.css`. `App.jsx` renders `NavigationSidebar` alongside the `<Routes>` block, which keeps the sidebar visible as you move between the `Home`, `Profile`, and `Discover` pages. The component folders are still grouped under those sections so you can hook up the database data to carousels and cards once the UI wiring is ready.
 
 ```
 frontend/
 ├── package.json
+├── package-lock.json
+├── index.html             ← Vite entry that loads `/src/main.jsx`
 └── src/
-    ├── index.js           ← entry point that loads global styles
-    ├── App.js             ← top-level shell for sidebar + pages
+    ├── main.jsx          ← mounts `App` into `#root`
+    ├── App.jsx           ← top-level shell for sidebar + routed content
     ├── styles/
-    │   └── global.css     ← placeholder for shared styling
+    │   └── global.css    ← shared base styling
     ├── layouts/
     │   └── MainLayout/
-    │       └── index.js   ← combines navigation + routed content
+    │       └── index.jsx  ← navigation + page container
     ├── pages/
     │   ├── HomePage/
-    │   │  └── index.js    ← followed artist + playlist carousels
+    │   │  └── index.jsx   ← followed artist + playlist carousels
     │   ├── ProfilePage/
-    │   │  └── index.js    ← profile card area
+    │   │  └── index.jsx   ← profile card area
     │   └── DiscoverPage/
-    │      └── index.js    ← select artist carousel
+    │      └── index.jsx   ← select artist carousel
     └── components/
         ├── NavigationSidebar/
-        │  └── index.js    ← links to the three main pages
+        │  └── index.jsx   ← links to the three main pages
         ├── Home/
         │  ├── FollowedArtistCarousel/
-        │  │  └── index.js
+        │  │  └── index.jsx
         │  ├── PlaylistCarousel/
-        │  │  └── index.js
+        │  │  └── index.jsx
         │  ├── ArtistCard/
-        │  │  └── index.js
+        │  │  └── index.jsx
         │  ├── AlbumCard/
-        │  │  └── index.js
+        │  │  └── index.jsx
         │  ├── PlaylistCard/
-        │  │  └── index.js
+        │  │  └── index.jsx
         │  └── RemoveSongCard/
-        │     └── index.js
+        │     └── index.jsx
         ├── Profile/
         │  └── ProfileCard/
-        │     └── index.js
+        │     └── index.jsx
         └── Discover/
            ├── SelectArtistCarousel/
-           │  └── index.js
+           │  └── index.jsx
            └── ArtistCard/
-              └── index.js
+              └── index.jsx
 ```
 
 Each file currently returns `null` so you can start wiring routes and database data.
