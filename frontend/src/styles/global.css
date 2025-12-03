@@ -159,6 +159,16 @@ body {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+.profile-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background-color: var(--color-lighter-gray);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 
 .followed-artist-carousel {
   display: flex;
@@ -198,6 +208,17 @@ body {
 }
 
 .playlist-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background-color: var(--color-lighter-gray);
+  border: 1px solid var(--color-light-orange);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.discover-artist-card {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;

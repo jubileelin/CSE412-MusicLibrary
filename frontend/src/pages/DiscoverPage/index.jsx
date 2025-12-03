@@ -1,9 +1,12 @@
 import React from 'react';
+import DiscoverArtistCard from '../../components/Discover/ArtistCard';
 
 const DiscoverPage = () => (
   <section className="page-section">
     <h2>Discover</h2>
-    <p>This area will hold the select artist carousel and discovery cards.</p>
+    <section className="inner-page-section">
+      <DiscoverArtistCard />
+    </section>
   </section>
 );
 
