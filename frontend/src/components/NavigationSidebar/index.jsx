@@ -9,8 +9,8 @@ const navItems = [
 
 const NavigationSidebar = () => (
   <nav className="navigation-sidebar">
-    <div className="sidebar-brand">
-      <h1>Music Library</h1>
+    <div className=" sidebar-brand">
+      <h1 className="">Music Library</h1>
       <span>Navigation</span>
     </div>
     <ul>

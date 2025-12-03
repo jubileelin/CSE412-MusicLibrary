@@ -1,11 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Urbanist:wght@100;200;300;400;500;600;700;800&display=swap');
+
 * {
   box-sizing: border-box;
 }
 
 :root {
-  font-family: system-ui, 'Segoe UI', sans-serif;
+  font-family: 'Urbanist', 'SF Pro Text', -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
   background-color: #020617;
   color: #e2e8f0;
+  --color-orange: #FF7E3A;
+  --color-tan: #FFD7C2;
+  --color-brown: #73391A;
+  --color-dark-brown: #1C0E06;
+  --color-light-tan: #FFEADF;
 }
 
 body {
@@ -31,6 +39,8 @@ body {
 }
 
 .sidebar-brand h1 {
+  font-family: 'Urbanist', 'SF Pro Text', -apple-system, system-ui, sans-serif;
+  font-weight: 600;
   font-size: 1.25rem;
   margin: 0;
 }
