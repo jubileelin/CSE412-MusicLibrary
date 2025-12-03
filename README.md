@@ -191,3 +191,15 @@ frontend/
 ```
 
 Each file currently returns `null` so you can start wiring routes and database data.
+
+## Seed artists from TheAudioDB
+
+If you want sample users to follow actual artists, run the standalone seeding script. It hits TheAudioDB v1 (key `123`) and populates `artist` + `follow` rows, logging every inserted artist and each account update.
+
+```
+cd /Users/jubileelin/CSE412-MusicLibrary
+docker-compose up -d       # ensure Postgres is running
+npm run seed-artists       # fetches artists, inserts them, and creates follow records
+```
+
+The script reads your Postgres credentials from `backend/.env`, so make sure that file still exists and points at the running database. You can rerun the script whenever you want fresh random artists without touching the UI.
