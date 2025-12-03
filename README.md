@@ -9,14 +9,9 @@ npm install
 
 
 populate database:
-
-psql -h localhost -U pguser -d music_db -f backend/sql/migrations/001_create_tables.sql
-
-password is pgpass
-
-psql -h localhost -U pguser -d music_db -f backend/sql/seeds/seed_sample_data.sql
-
-psql -h localhost -U pguser -d music_db -f backend/sql/migrations/002_add_indexes.sql
+cd /Users/jubileelin/CSE412-MusicLibrary
+docker-compose up -d       # ensure Postgres is running
+npm run seed-artists       # fetches artists, inserts them, and creates follow records
 
 
 
@@ -26,14 +21,7 @@ docker exec -it music_pg psql -U pguser -d music_db
 
 \di  -- list all indexes in psql
 
-example queries: 
-INSERT INTO artist (id, artist_name, genre, artist_language, bio, start_date)
-VALUES
-  (uuid_generate_v4(), 'Fujii Kaze', 'J-Pop', 'Japanese', 'Japanese singer-songwriter', '2019-11-18'),
-  (uuid_generate_v4(), 'Eminem', 'Hip-Hop', 'English', 'American rapper and songwriter', '1998-03-09'),
-  (uuid_generate_v4(), 'Sabrina Carpenter', 'Pop', 'English', 'American singer, songwriter, and actress', '2014-04-08');
 
-SELECT * FROM artist ORDER BY start_date;
 
 
 

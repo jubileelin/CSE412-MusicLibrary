@@ -14,14 +14,23 @@ const pool = new Pool({
 const artistNames = [
   'Coldplay',
   'Daft Punk',
-  'Eminem',
+  'Lorde',
   'Sabrina Carpenter',
   'Billie Eilish',
   'The Weeknd',
   'Adele',
   'Fujii Kaze',
   'Arctic Monkeys',
-  'Halsey'
+  'Halsey',
+  'The Marias',
+  'Taylor Swift',
+  'Ariana Grande',
+  'Justin Bieber',
+  'Ed Sheeran',
+  'Dua Lipa',
+  'Katy Perry',
+  'Lady Gaga',
+  'Beyonce',
 ];
 
 const THEAUDIODB_KEY = '123';
