@@ -1,9 +1,16 @@
 import React from 'react';
+import { NavLink } from 'react-router-dom';
+import FollowedArtistCarousel from '../../components/Home/FollowedArtistCarousel';
+import PlaylistCarousel from '../../components/Home/PlaylistCarousel';
 
 const HomePage = () => (
   <section className="page-section">
     <h2>Home</h2>
-    <p>This is the placeholder for the followed artists and playlist carousels.</p>
+      <section className="inner-page-section">
+        <FollowedArtistCarousel />
+        <PlaylistCarousel />
+      </section>
+
   </section>
 );
 
