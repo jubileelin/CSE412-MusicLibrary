@@ -105,5 +105,25 @@ app.patch('/accounts/:id', async (req, res) => {
   res.json(updated);
 });
 
+app.post('/accounts', async (req, res) => {
+  const { user_name, email, subscription_type } = req.body;
+
+  if (!user_name || !email) {
+    res.status(400).json({ message: 'Name and email are required' });
+    return;
+  }
+
+  const result = await pool.query(
+    `INSERT INTO account (user_name, email, subscription_type)
+     VALUES ($1, $2, $3)
+     RETURNING id, user_name, email, subscription_type, date_joined;`,
+    [user_name, email, subscription_type || 'Standard']
+  );
+
+  const created = result.rows[0];
+  console.log('Created account:', created);
+  res.status(201).json(created);
+});
+
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

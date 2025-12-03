@@ -127,6 +127,14 @@ body {
   gap: 0.5rem;
 }
 
+.ghost-button {
+  background: transparent;
+  border: 1px solid rgba(28, 28, 28, 0.4);
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+}
+
 .profile-edit-form {
   display: flex;
   flex-direction: column;
@@ -167,6 +175,26 @@ body {
 .profile-edit-form button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  z-index: 100;
+}
+
+.modal-content {
+  background-color: #fff;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.35);
 }
 
 .update-text {
