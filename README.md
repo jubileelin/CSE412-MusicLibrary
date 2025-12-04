@@ -39,3 +39,8 @@ you can unfollow artist and they disappear i think,
 you can follow artist and they appear in follow list
 you can add new playlist and it randomly choose three songs
 
+notes on how the code works:
+i used The AudioDB as our online api, bcuz its free and easiest to use with endpoints
+the script seed artists basically takes information from api and populates the database, and also creates user and playlists for them
+the reset script just resets the database
+all the buttons are just sql calls
