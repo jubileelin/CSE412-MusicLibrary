@@ -29,3 +29,13 @@ npm run reset-db
 
 after seeding the database : 
 npm run dev on the frontend and backend terminals
+
+
+
+IMPORTANT: click user profile to start on profile, 
+can switch between alice and bob, add new user, can edit profile 
+can click album names to expand album tracklist multiple can open at once so make sure you close each one in demo lol
+you can unfollow artist and they disappear i think,
+you can follow artist and they appear in follow list
+you can add new playlist and it randomly choose three songs
+
