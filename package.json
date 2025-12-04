@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "seed-artists": "node scripts/seed_artists.js"
+    "seed-artists": "node scripts/seed_artists.js",
+    "reset-db": "node scripts/reset_db.js"
   },
   "keywords": [],
   "author": "",

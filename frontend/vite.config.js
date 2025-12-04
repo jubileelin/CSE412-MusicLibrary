@@ -13,6 +13,11 @@ export default defineConfig({
         target: 'http://localhost:4000',
         changeOrigin: true
       }
+      ,
+      '/albums': {
+        target: 'http://localhost:4000',
+        changeOrigin: true
+      }
     }
   }
 });

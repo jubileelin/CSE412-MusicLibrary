@@ -61,6 +61,63 @@ app.get('/accounts/:id', async (req, res) => {
   res.json(result.rows[0]);
 });
 
+app.get('/accounts/:id/followed-artists', async (req, res) => {
+  const { id } = req.params;
+  const result = await pool.query(
+    `SELECT
+       a.id AS artist_id,
+       a.artist_name,
+       a.bio,
+       a.genre,
+       a.artist_language,
+       a.start_date,
+      (
+        SELECT COALESCE(json_agg(json_build_object(
+          'id', al.id,
+          'name', al.album_name,
+          'release_date', al.release_date,
+          'image', NULL,
+          'external_id', al.external_id
+        )), '[]'::json)
+        FROM (
+          SELECT al.*
+          FROM album al
+          WHERE al.artist_id = a.id
+          ORDER BY COALESCE(al.release_date, '1970-01-01') DESC
+          LIMIT 3
+        ) al
+      ) AS albums
+     FROM follow f
+     JOIN artist a ON a.id = f.artist_id
+     WHERE f.user_id = $1;`,
+    [id]
+  );
+
+  console.log(`Returning ${result.rowCount} followed artists for account ${id}`);
+  result.rows.forEach((row) => {
+    console.log(`  - ${row.artist_name} has ${row.albums.length} stored albums`);
+  });
+
+  res.json(result.rows);
+});
+
+app.get('/albums/:id/tracks', async (req, res) => {
+  const { id } = req.params;
+  const result = await pool.query(
+    `SELECT song_title AS title,
+            track_number,
+            duration,
+            is_explicit
+     FROM song
+     WHERE album_id = $1
+     ORDER BY track_number;`,
+    [id]
+  );
+
+  console.log(`Fetched ${result.rowCount} tracks for album ${id}`);
+  res.json(result.rows);
+});
+
 app.patch('/accounts/:id', async (req, res) => {
   const { id } = req.params;
   const { user_name, email, subscription_type } = req.body;

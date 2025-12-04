@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import AlbumCard from '../AlbumCard';
 
 const HeartIcon = ({ active }) => (
   <svg
@@ -10,12 +11,30 @@ const HeartIcon = ({ active }) => (
   </svg>
 );
 
-const ArtistCard = () => {
+const ArtistCard = ({ artist }) => {
   const [following, setFollowing] = useState(false);
+  const albums = artist.albums?.filter((album) => album?.name) || [];
+  const [activeAlbum, setActiveAlbum] = useState(null);
+
+  const toggleAlbum = (album) => {
+    if (!album?.id) {
+      return;
+    }
+    setActiveAlbum((current) => (current?.id === album.id ? null : album));
+  };
+
+  const infoSince = artist.start_date ? `Since ${new Date(artist.start_date).getFullYear()}` : 'Since —';
+  const truncateBio = (text, length = 120) => {
+    if (!text) {
+      return 'Artist bio is not available yet.';
+    }
+    return text.length > length ? `${text.slice(0, length).trim()}…` : text;
+  };
 
   return (
-    <div className="artist-card">
-      <div className="artist-card__header">
+    <div className="artist-card-wrapper">
+      <div className="artist-card">
+        <div className="artist-card__header">
         <button
           type="button"
           className={`artist-card__follow-button ${following ? 'active' : ''}`}
@@ -25,26 +44,38 @@ const ArtistCard = () => {
           <HeartIcon active={following} />
           {following ? 'Following' : 'Follow'}
         </button>
-        <h3>Taylor Swift</h3>
+        <h3>{artist.artist_name}</h3>
       </div>
       <div className="artist-card__bio">
-        <p>Artist Description</p>
+        <p>{truncateBio(artist.bio)}</p>
       </div>
       <div className="artist-card__info">
-        <span className="artist-card__info__field">Since 2006</span>
+        <span className="artist-card__info__field">{infoSince}</span>
         <span className="artist-card__divider" aria-hidden="true" />
-        <span className="artist-card__info__field">Genre: Pop</span>
+        <span className="artist-card__info__field">Genre: {artist.genre || '—'}</span>
         <span className="artist-card__divider" aria-hidden="true" />
-        <span className="artist-card__info__field">English</span>
+        <span className="artist-card__info__field">{artist.artist_language || 'Unknown'}</span>
       </div>
       <div className="artist-card__albums_section">
         <h4>Albums</h4>
         <div className="artist-card__albums_list">
-          <div>Album 1</div>
-          <div>Album 2</div>
-          <div>Album 3</div>
+          {albums.length === 0 && <p className="artist-card__album-empty">No albums available</p>}
+          {albums.map((album) => (
+            <button
+              key={album.id}
+              type="button"
+              className={`artist-card__album-name ${
+                activeAlbum?.id === album.id ? 'active' : ''
+              }`}
+              onClick={() => toggleAlbum(album)}
+            >
+              {album.name}
+            </button>
+          ))}
         </div>
       </div>
+      </div>
+      {activeAlbum && <AlbumCard album={activeAlbum} onClose={() => setActiveAlbum(null)} />}
     </div>
   );
 };

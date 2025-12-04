@@ -23,8 +23,8 @@ docker exec -it music_pg psql -U pguser -d music_db
 
 
 
-
-
+to reset:
+npm run reset-db
 
 UPDATE artist
 SET bio = 'japanese singer-songwriter and pianist'
