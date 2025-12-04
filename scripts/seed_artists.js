@@ -64,7 +64,72 @@ const fetchTracksForAlbum = async (albumExternalId) => {
   return data.track || [];
 };
 
+const createPlaylistForUser = async (userName, playlistName, offset = 0) => {
+  const accountResult = await pool.query('SELECT id FROM account WHERE user_name = $1', [userName]);
+  if (accountResult.rowCount === 0) {
+    console.log(`  ➜ account ${userName} missing, skipping playlist ${playlistName}`);
+    return;
+  }
+
+  const userId = accountResult.rows[0].id;
+  await pool.query(
+    `DELETE FROM playlist_song
+     WHERE playlist_id IN (
+       SELECT id FROM playlist WHERE user_id = $1 AND playlist_name = $2
+     );`,
+    [userId, playlistName]
+  );
+  await pool.query('DELETE FROM playlist WHERE user_id = $1 AND playlist_name = $2;', [userId, playlistName]);
+
+  const playlistResult = await pool.query(
+    `INSERT INTO playlist (user_id, playlist_name, created_date)
+     VALUES ($1, $2, NOW())
+     RETURNING id;`,
+    [userId, playlistName]
+  );
+  const playlistId = playlistResult.rows[0]?.id;
+  if (!playlistId) {
+    return;
+  }
+
+  const tracksResult = await pool.query(
+    `SELECT id FROM song
+     ORDER BY release_date DESC NULLS LAST
+     LIMIT 3
+     OFFSET $1;`,
+    [offset]
+  );
+
+  if (tracksResult.rowCount === 0) {
+    console.log(`  ➜ no songs available for ${playlistName}`);
+    return;
+  }
+
+  for (const [index, trackRow] of tracksResult.rows.entries()) {
+    await pool.query(
+      `INSERT INTO playlist_song (playlist_id, song_id, date_added, pos)
+       VALUES ($1, $2, NOW(), $3)
+       ON CONFLICT DO NOTHING;`,
+      [playlistId, trackRow.id, index + 1]
+    );
+  }
+
+  console.log(`  ➜ created playlist "${playlistName}" for ${userName}`);
+};
+
+const ensureImageColumns = async () => {
+  await pool.query(`
+    ALTER TABLE artist
+    ADD COLUMN IF NOT EXISTS artist_image TEXT;
+  `);
+  await pool.query(`
+    ALTER TABLE album
+    ADD COLUMN IF NOT EXISTS album_image TEXT;
+  `);
+};
+
 const seed = async () => {
+  await ensureImageColumns();
   try {
     console.log('Seeding artists via TheAudioDB...');
     const insertedArtistIds = [];
@@ -105,16 +170,19 @@ const seed = async () => {
         });
       const limitedAlbums = sortedByPopularity.slice(0, 3);
 
+      const artistImage =
+        artist.strArtistThumb || artist.strArtistBanner || artist.strArtistClearart || null;
       const insertResult = await pool.query(
-        `INSERT INTO artist (artist_name, genre, artist_language, bio, start_date)
-         VALUES ($1, $2, $3, $4, $5)
+        `INSERT INTO artist (artist_name, genre, artist_language, bio, start_date, artist_image)
+         VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING id;`,
         [
           artist.strArtist,
           artist.strGenre || null,
           artist.strArtist == null ? null : artist.strArtistLocale || null,
           artist.strBiographyEN || null,
-          artist.intFormedYear ? `${artist.intFormedYear}-01-01` : null
+          artist.intFormedYear ? `${artist.intFormedYear}-01-01` : null,
+          artistImage
         ]
       );
 
@@ -140,16 +208,18 @@ const seed = async () => {
         if (existingAlbum.rowCount > 0) {
           storedAlbumId = existingAlbum.rows[0].id;
         } else {
+          const albumImage = album.strAlbumThumb || album.strAlbumCDart || null;
           const insertAlbumResult = await pool.query(
-            `INSERT INTO album (artist_id, album_name, genre, release_date, external_id)
-             VALUES ($1, $2, $3, $4, $5)
+            `INSERT INTO album (artist_id, album_name, genre, release_date, external_id, album_image)
+             VALUES ($1, $2, $3, $4, $5, $6)
              RETURNING id;`,
             [
               artistId,
               album.strAlbum || 'Unknown Album',
               album.strGenre || artist.strGenre || null,
               releaseDate,
-              albumExternalId
+              albumExternalId,
+              albumImage
             ]
           );
           storedAlbumId = insertAlbumResult.rows[0]?.id;
@@ -223,6 +293,9 @@ const seed = async () => {
       }
       console.log(`  ➜ user ${userId} now follows ${shuffled.length} new artists`);
     }
+
+    await createPlaylistForUser('alice', 'Alice Morning Drive', 0);
+    await createPlaylistForUser('bob', 'Bob Midnight Ride', 3);
 
     console.log('Artist seeding complete');
   } catch (err) {

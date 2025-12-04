@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import AlbumCard from '../AlbumCard';
+import { useCurrentAccount } from '../../../contexts/CurrentAccountContext';
+import { followArtist, unfollowArtist } from '../../../api/artists';
 
 const HeartIcon = ({ active }) => (
   <svg
@@ -12,7 +14,11 @@ const HeartIcon = ({ active }) => (
 );
 
 const ArtistCard = ({ artist }) => {
-  const [following, setFollowing] = useState(false);
+  const { currentAccount, incrementFollowVersion } = useCurrentAccount();
+  const accountId = currentAccount?.id;
+  const initialFollowing = artist.is_following ?? true;
+  const [following, setFollowing] = useState(initialFollowing);
+  const [processingFollow, setProcessingFollow] = useState(false);
   const albums = artist.albums?.filter((album) => album?.name) || [];
   const [activeAlbum, setActiveAlbum] = useState(null);
 
@@ -31,22 +37,55 @@ const ArtistCard = ({ artist }) => {
     return text.length > length ? `${text.slice(0, length).trim()}…` : text;
   };
 
+  useEffect(() => {
+    setFollowing(initialFollowing);
+  }, [initialFollowing]);
+
+  const handleFollowToggle = async () => {
+    if (!accountId || processingFollow) {
+      return;
+    }
+
+    setProcessingFollow(true);
+    try {
+      if (following) {
+        await unfollowArtist(accountId, artist.artist_id);
+      } else {
+        await followArtist(accountId, artist.artist_id);
+      }
+      setFollowing((prev) => !prev);
+      incrementFollowVersion();
+    } catch (err) {
+      console.error('Follow toggle failed', err);
+    } finally {
+      setProcessingFollow(false);
+    }
+  };
+
+  const coverStyle = artist.artist_image
+    ? { backgroundImage: `url(${artist.artist_image})` }
+    : undefined;
+
   return (
     <div className="artist-card-wrapper">
       <div className="artist-card">
         <div className="artist-card__header">
-        <button
-          type="button"
-          className={`artist-card__follow-button ${following ? 'active' : ''}`}
-          onClick={() => setFollowing((prev) => !prev)}
-          aria-pressed={following}
-        >
-          <HeartIcon active={following} />
-          {following ? 'Following' : 'Follow'}
-        </button>
-        <h3>{artist.artist_name}</h3>
-      </div>
-      <div className="artist-card__bio">
+          <h3>{artist.artist_name}</h3>
+          <button
+            type="button"
+            className={`artist-card__follow-button ${following ? 'active' : ''}`}
+            onClick={handleFollowToggle}
+            aria-pressed={following}
+            disabled={!accountId || processingFollow}
+          >
+            <HeartIcon active={following} />
+            {following ? 'Following' : 'Follow'}
+          </button>
+        </div>
+        <div className="artist-card__cover" style={coverStyle}>
+          {!artist.artist_image && <span>{artist.artist_name?.charAt(0) ?? 'U'}</span>}
+        </div>
+        <div className="artist-card__bio">
         <p>{truncateBio(artist.bio)}</p>
       </div>
       <div className="artist-card__info">

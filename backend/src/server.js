@@ -65,18 +65,21 @@ app.get('/accounts/:id/followed-artists', async (req, res) => {
   const { id } = req.params;
   const result = await pool.query(
     `SELECT
-       a.id AS artist_id,
-       a.artist_name,
-       a.bio,
-       a.genre,
-       a.artist_language,
-       a.start_date,
+      a.id AS artist_id,
+      a.artist_name,
+      a.bio,
+      a.genre,
+      a.artist_language,
+      a.start_date,
+      a.artist_image,
+      f.is_favorite AS is_favorite,
+      true AS is_following,
       (
         SELECT COALESCE(json_agg(json_build_object(
           'id', al.id,
           'name', al.album_name,
           'release_date', al.release_date,
-          'image', NULL,
+          'image', al.album_image,
           'external_id', al.external_id
         )), '[]'::json)
         FROM (
@@ -87,9 +90,10 @@ app.get('/accounts/:id/followed-artists', async (req, res) => {
           LIMIT 3
         ) al
       ) AS albums
-     FROM follow f
-     JOIN artist a ON a.id = f.artist_id
-     WHERE f.user_id = $1;`,
+    FROM follow f
+    JOIN artist a ON a.id = f.artist_id
+    WHERE f.user_id = $1
+    ORDER BY f.follow_date DESC NULLS LAST;`,
     [id]
   );
 
@@ -99,6 +103,165 @@ app.get('/accounts/:id/followed-artists', async (req, res) => {
   });
 
   res.json(result.rows);
+});
+
+app.post('/accounts/:id/follows', async (req, res) => {
+  const { id } = req.params;
+  const { artist_id } = req.body;
+
+  if (!artist_id) {
+    res.status(400).json({ message: 'artist_id is required' });
+    return;
+  }
+
+  const insertResult = await pool.query(
+    `INSERT INTO follow (user_id, artist_id, follow_date, is_favorite)
+     VALUES ($1, $2, NOW(), false)
+     ON CONFLICT (user_id, artist_id) DO UPDATE
+       SET follow_date = NOW()
+     RETURNING artist_id;`,
+    [id, artist_id]
+  );
+
+  console.log(`User ${id} followed artist ${artist_id}`);
+  res.status(201).json({ artist_id: insertResult.rows[0].artist_id });
+});
+
+app.delete('/accounts/:id/follows/:artistId', async (req, res) => {
+  const { id, artistId } = req.params;
+  await pool.query('DELETE FROM follow WHERE user_id = $1 AND artist_id = $2;', [id, artistId]);
+  console.log(`User ${id} unfollowed artist ${artistId}`);
+  res.status(204).send();
+});
+
+app.get('/accounts/:id/playlists', async (req, res) => {
+  const { id } = req.params;
+  res.set('Cache-Control', 'no-store');
+  const result = await pool.query(
+    `SELECT
+      p.id,
+      p.playlist_name,
+      p.duration,
+      p.is_explicit,
+      p.created_date,
+      (
+        SELECT COALESCE(json_agg(json_build_object(
+          'track_number', ps.pos,
+          'song_title', s.song_title,
+          'duration', s.duration,
+          'is_explicit', s.is_explicit
+        ) ORDER BY ps.pos), '[]'::json)
+        FROM playlist_song ps
+        JOIN song s ON s.id = ps.song_id
+        WHERE ps.playlist_id = p.id
+      ) AS tracks
+    FROM playlist p
+    WHERE p.user_id = $1
+    ORDER BY p.created_date DESC;`,
+    [id]
+  );
+
+  console.log(`Returning ${result.rowCount} playlists for account ${id}`);
+  res.json(result.rows);
+});
+
+app.get('/accounts/:id/discover-artists', async (req, res) => {
+  const { id } = req.params;
+  const result = await pool.query(
+    `SELECT
+      a.id AS artist_id,
+      a.artist_name,
+      a.bio,
+      a.genre,
+      a.artist_language,
+      a.start_date,
+      a.artist_image,
+      false AS is_following,
+      false AS is_favorite,
+      (
+        SELECT COALESCE(json_agg(json_build_object(
+          'id', al.id,
+          'name', al.album_name,
+          'release_date', al.release_date,
+          'image', al.album_image,
+          'external_id', al.external_id
+        )), '[]'::json)
+        FROM (
+          SELECT al.*
+          FROM album al
+          WHERE al.artist_id = a.id
+          ORDER BY COALESCE(al.release_date, '1970-01-01') DESC
+          LIMIT 3
+        ) al
+      ) AS albums
+    FROM artist a
+    WHERE NOT EXISTS (
+      SELECT 1 FROM follow f WHERE f.user_id = $1 AND f.artist_id = a.id
+    )
+    ORDER BY random()
+    LIMIT 9;`,
+    [id]
+  );
+
+  console.log(`Returning ${result.rowCount} discover artists for account ${id}`);
+  res.json(result.rows);
+});
+
+app.post('/accounts/:id/playlists', async (req, res) => {
+  const { id } = req.params;
+  const { playlist_name } = req.body;
+
+  if (!playlist_name) {
+    res.status(400).json({ message: 'Playlist name is required' });
+    return;
+  }
+
+  const playlistResult = await pool.query(
+    `INSERT INTO playlist (user_id, playlist_name, created_date)
+     VALUES ($1, $2, NOW())
+     RETURNING id, playlist_name, is_explicit, created_date;`,
+    [id, playlist_name]
+  );
+
+  const playlistId = playlistResult.rows[0]?.id;
+
+  const trackRows = await pool.query(
+    `SELECT
+      s.track_number,
+      s.song_title,
+      s.duration,
+      s.is_explicit,
+      s.id
+     FROM song s
+     JOIN follow f ON f.artist_id = s.artist_id
+     WHERE f.user_id = $1
+     ORDER BY random()
+     LIMIT 3;`,
+    [id]
+  );
+
+  await Promise.all(
+    trackRows.rows.map((track, idx) =>
+      pool.query(
+        `INSERT INTO playlist_song (playlist_id, song_id, date_added, pos)
+         VALUES ($1, $2, NOW(), $3)
+         ON CONFLICT DO NOTHING;`,
+        [playlistId, track.id, idx + 1]
+      )
+    )
+  );
+
+  const responsePayload = {
+    ...playlistResult.rows[0],
+    tracks: trackRows.rows.map((track, idx) => ({
+      track_number: track.track_number || idx + 1,
+      song_title: track.song_title,
+      duration: track.duration,
+      is_explicit: track.is_explicit
+    }))
+  };
+
+  res.status(201).json(responsePayload);
 });
 
 app.get('/albums/:id/tracks', async (req, res) => {

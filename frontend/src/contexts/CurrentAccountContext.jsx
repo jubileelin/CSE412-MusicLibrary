@@ -1,13 +1,23 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useContext, useMemo, useState, useCallback } from 'react';
 
 const CurrentAccountContext = createContext({
   currentAccount: null,
-  setCurrentAccount: () => {}
+  setCurrentAccount: () => {},
+  followVersion: 0,
+  incrementFollowVersion: () => {}
 });
 
 export const CurrentAccountProvider = ({ children }) => {
   const [currentAccount, setCurrentAccount] = useState(null);
-  const value = useMemo(() => ({ currentAccount, setCurrentAccount }), [currentAccount]);
+  const [followVersion, setFollowVersion] = useState(0);
+  const incrementFollowVersion = useCallback(
+    () => setFollowVersion((version) => version + 1),
+    []
+  );
+  const value = useMemo(
+    () => ({ currentAccount, setCurrentAccount, followVersion, incrementFollowVersion }),
+    [currentAccount, followVersion, incrementFollowVersion]
+  );
 
   return (
     <CurrentAccountContext.Provider value={value}>
