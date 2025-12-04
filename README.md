@@ -17,6 +17,7 @@ npm install
 
 populate database:
 make sure docker is open and running
+
 third terminal:
 cd /Users/jubileelin/CSE412-MusicLibrary
 docker-compose up -d       # ensure Postgres is running
@@ -24,3 +25,7 @@ npm run seed-artists       # fetches artists, inserts them, and creates follow r
 
 to reset:
 npm run reset-db
+
+
+after seeding the database : 
+npm run dev on the frontend and backend terminals
