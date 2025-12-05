@@ -21,6 +21,11 @@ make sure docker is open and running
 third terminal:
 cd /Users/jubileelin/CSE412-MusicLibrary
 docker-compose up -d       # ensure Postgres is running
+
+psql -h localhost -U pguser -d music_db -f sql/migrations/001_create_tables.sql
+
+psql -h localhost -U pguser -d music_db -f sql/migrations/002_add_indexes.sql
+
 npm run seed-artists       # fetches artists, inserts them, and creates follow records
 
 to reset:
