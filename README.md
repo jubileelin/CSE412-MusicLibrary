@@ -28,7 +28,7 @@ psql -h localhost -U pguser -d music_db -f backend/sql/migrations/002_add_indexe
 
 psql -h localhost -U pguser -d music_db -f backend/sql/seeds/seed_sample_data.sql
 
-npm install dotend
+npm install dotenv
 
 npm run seed-artists       # fetches artists, inserts them, and creates follow records
 
